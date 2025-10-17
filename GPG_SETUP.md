@@ -195,3 +195,4 @@ You can't retroactively sign old commits, but you can:
 
 **Your commits will now show as "Verified" on GitHub once you add the GPG key!** ✅
 
+Testing GPG signature - Fri Oct 17 13:40:01 CDT 2025
