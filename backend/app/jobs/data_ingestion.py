@@ -3,7 +3,6 @@ Data ingestion jobs for syncing external data sources.
 """
 import logging
 import hashlib
-from typing import Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -12,7 +11,6 @@ from app.connectors.socrata import SocrataConnector, PROPERTY_INFO_FIELDS
 from app.connectors.arcgis import ArcGISConnector, ArcGISService
 from app.models.parcels import Parcel, ZoningDistrict
 from app.models.sr_311 import ServiceRequest311
-from app.models.data_catalog import DataSourceType
 from app.services.data_catalog import DataCatalogService
 
 logger = logging.getLogger(__name__)

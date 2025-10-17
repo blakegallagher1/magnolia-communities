@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.data_catalog import (
     DataCatalog,
-    DataSource,
     DataSourceType,
     DataSourceStatus,
 )

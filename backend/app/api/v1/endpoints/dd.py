@@ -11,7 +11,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.models.dd import (
-    DDChecklist, DDItem, Document,
+    DDChecklist, DDItem,
     DDItemStatus, DDCategory, RiskLevel
 )
 

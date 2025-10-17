@@ -1,0 +1,80 @@
+name: Auto Fix on CI Failure
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: ["completed"]
+
+jobs:
+  autofix:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend deps
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ruff black
+
+      - name: Install frontend deps
+        working-directory: ./frontend
+        run: |
+          npm ci || npm install
+
+      - name: Apply auto-fixes (ruff, black, eslint, add missing plugins)
+        run: |
+          set -e
+          # Python auto-fix
+          (cd backend && ruff check app/ --fix && black app)
+          # Ensure Tailwind forms plugin if referenced
+          if grep -q "@tailwindcss/forms" frontend/tailwind.config.js; then
+            (cd frontend && npm i -D @tailwindcss/forms@^0.5.9)
+          fi
+          # Frontend lint fix
+          (cd frontend && npx eslint . --ext .js,.jsx,.ts,.tsx --fix || true)
+
+      - name: Abort if too many auto-fix attempts
+        run: |
+          set -e
+          COUNT=$(git log -n 5 --pretty=%s | grep -c "auto-fix lint/build issues") || true
+          if [ "$COUNT" -ge 3 ]; then
+            echo "Auto-fix attempt threshold reached; aborting to prevent loops."
+            exit 0
+          fi
+
+      - name: Commit and push fixes
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -e
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(ci): auto-fix lint/build issues (ruff/black/eslint, tailwind plugins)"
+          git push origin HEAD:${BRANCH_NAME:-main}
+
+
