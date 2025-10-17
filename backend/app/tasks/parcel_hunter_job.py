@@ -1,6 +1,6 @@
 """Background job for running Parcel Hunter on schedule."""
+
 import logging
-from datetime import datetime
 
 from app.core.database import AsyncSessionLocal
 from app.core.redis import get_redis, CacheService
@@ -28,4 +28,3 @@ async def run_parcel_hunter_job():
             run.total_candidates,
             run.leads_created,
         )
-

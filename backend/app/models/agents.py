@@ -1,4 +1,5 @@
 """Agent-related persistence models."""
+
 from datetime import datetime
 from sqlalchemy import (
     Column,
@@ -23,7 +24,9 @@ class ParcelHunterRun(Base):
     __tablename__ = "parcel_hunter_runs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    started_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    started_at = Column(
+        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+    )
     completed_at = Column(DateTime(timezone=True))
     status = Column(String(32), default="running", nullable=False)
     total_candidates = Column(Integer, default=0, nullable=False)
@@ -56,12 +59,14 @@ class ParcelHunterResult(Base):
     score = Column(Integer, nullable=False)
     reasoning = Column(String(1024))
     context = Column(JSON)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+    )
 
     __table_args__ = (
-        UniqueConstraint("run_id", "parcel_uid", name="uq_parcel_hunter_result_parcel_run"),
+        UniqueConstraint(
+            "run_id", "parcel_uid", name="uq_parcel_hunter_result_parcel_run"
+        ),
         Index("idx_parcel_hunter_result_parcel", "parcel_uid"),
         Index("idx_parcel_hunter_result_score", "score"),
     )
-
-

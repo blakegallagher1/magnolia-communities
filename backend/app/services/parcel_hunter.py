@@ -1,10 +1,11 @@
 """Parcel Hunter agent core service."""
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Iterable, Sequence
+from typing import Iterable, Sequence
 
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -51,7 +52,11 @@ class ParcelHunterConfig(BaseModel):
     def from_settings(cls) -> "ParcelHunterConfig":
         """Create config using environment overrides if provided."""
         municipalities = getattr(settings, "TARGET_MUNICIPALITIES", None)
-        target = tuple(municipalities) if municipalities else cls.model_fields["target_municipalities"].default
+        target = (
+            tuple(municipalities)
+            if municipalities
+            else cls.model_fields["target_municipalities"].default
+        )
         return cls(target_municipalities=target)
 
 
@@ -82,7 +87,9 @@ class ParcelHunterService:
             candidates = await self._collect_candidates()
             scored = list(self._score_candidates(candidates))
 
-            logger.info("Parcel Hunter run %s evaluated %s parcels", run.id, len(scored))
+            logger.info(
+                "Parcel Hunter run %s evaluated %s parcels", run.id, len(scored)
+            )
 
             leads_created = await self._persist_results(run, scored)
 
@@ -114,7 +121,9 @@ class ParcelHunterService:
         stmt = select(Parcel).where(Parcel.land_use.ilike("%mobile home%"))
 
         if self.config.target_municipalities:
-            stmt = stmt.where(Parcel.municipality.in_(self.config.target_municipalities))
+            stmt = stmt.where(
+                Parcel.municipality.in_(self.config.target_municipalities)
+            )
         result = await self.db.execute(stmt)
         parcels = result.scalars().all()
 
@@ -125,7 +134,9 @@ class ParcelHunterService:
             acreage = self._compute_acreage(parcel)
             estimated_units = int(acreage * self.config.acreage_unit_factor)
 
-            complaints, per_unit = await self._compute_complaints(parcel, estimated_units)
+            complaints, per_unit = await self._compute_complaints(
+                parcel, estimated_units
+            )
             floodplain = await self._check_floodplain(parcel)
 
             candidates.append(
@@ -144,9 +155,8 @@ class ParcelHunterService:
     async def _compute_complaints(
         self, parcel: Parcel, estimated_units: int
     ) -> tuple[int, float]:
-        stmt = (
-            select(ServiceRequest311)
-            .where(ServiceRequest311.parcel_id == parcel.parcel_id)
+        stmt = select(ServiceRequest311).where(
+            ServiceRequest311.parcel_id == parcel.parcel_id
         )
 
         result = await self.db.execute(stmt)
@@ -165,20 +175,20 @@ class ParcelHunterService:
             geometry_type="esriGeometryPolygon",
         )
         return any(
-            str(f["attributes"].get("FLOOD_ZONE", "")).startswith("AE") for f in features
+            str(f["attributes"].get("FLOOD_ZONE", "")).startswith("AE")
+            for f in features
         )
 
-    def _score_candidates(self, candidates: Iterable[ParcelCandidate]) -> Iterable[tuple[ParcelCandidate, int, str]]:
+    def _score_candidates(
+        self, candidates: Iterable[ParcelCandidate]
+    ) -> Iterable[tuple[ParcelCandidate, int, str]]:
         """Yield candidate with composite score and recommendation."""
 
         for candidate in candidates:
             if candidate.estimated_units < self.config.min_units:
                 recommendation = "PASS"
                 score = 0
-            elif (
-                self.config.floodplain_exclusion
-                and candidate.is_in_floodplain
-            ):
+            elif self.config.floodplain_exclusion and candidate.is_in_floodplain:
                 recommendation = "PASS"
                 score = 5
             elif candidate.complaints_per_unit > self.config.max_complaints_per_unit:
@@ -187,7 +197,16 @@ class ParcelHunterService:
             else:
                 # Base score on unit density and complaint rate inverse
                 density_score = min(60, int(candidate.estimated_units * 2))
-                complaint_score = max(30, int((self.config.max_complaints_per_unit - candidate.complaints_per_unit) * 20))
+                complaint_score = max(
+                    30,
+                    int(
+                        (
+                            self.config.max_complaints_per_unit
+                            - candidate.complaints_per_unit
+                        )
+                        * 20
+                    ),
+                )
                 score = min(100, density_score + complaint_score)
                 recommendation = "PURSUE" if score >= 70 else "MONITOR"
 
@@ -261,9 +280,7 @@ class ParcelHunterService:
             self.db.add(park)
             await self.db.flush()
 
-        lead_result = await self.db.execute(
-            select(Lead).where(Lead.park_id == park.id)
-        )
+        lead_result = await self.db.execute(select(Lead).where(Lead.park_id == park.id))
         if lead_result.scalar_one_or_none():
             return 0
 
@@ -285,5 +302,3 @@ class ParcelHunterService:
             return float(acreage)
         except (TypeError, ValueError):
             return 0.0
-
-

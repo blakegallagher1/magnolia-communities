@@ -1,4 +1,5 @@
 """Parcel Hunter agent endpoints."""
+
 from typing import Any, Dict, List
 from uuid import UUID
 
@@ -44,9 +45,7 @@ async def trigger_parcel_hunter(db: AsyncSession = Depends(get_db)):
 @router.get("/runs", response_model=List[Dict[str, Any]])
 async def list_runs(db: AsyncSession = Depends(get_db)) -> List[Dict[str, Any]]:
     result = await db.execute(
-        select(ParcelHunterRun)
-        .order_by(ParcelHunterRun.started_at.desc())
-        .limit(50)
+        select(ParcelHunterRun).order_by(ParcelHunterRun.started_at.desc()).limit(50)
     )
     runs = result.scalars().all()
     return [
@@ -94,4 +93,3 @@ async def get_run(run_id: UUID, db: AsyncSession = Depends(get_db)) -> Dict[str,
             for r in results
         ],
     }
-
