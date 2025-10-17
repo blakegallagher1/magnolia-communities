@@ -1,6 +1,7 @@
 """
 GallagherMHP Command Platform - Main Application Entry Point
 """
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -67,4 +68,3 @@ async def root():
         "health": "/health",
         "metrics": "/metrics",
     }
-

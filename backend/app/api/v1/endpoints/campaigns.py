@@ -1,6 +1,7 @@
 """
 Direct mail and campaign management endpoints.
 """
+
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -34,7 +35,7 @@ class CampaignResponse(BaseModel):
     response_count: int
     launched_at: Optional[datetime]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -64,14 +65,14 @@ async def list_campaigns(
 ):
     """List campaigns with optional filtering."""
     stmt = select(Campaign)
-    
+
     if status:
         stmt = stmt.where(Campaign.status == status)
     if campaign_type:
         stmt = stmt.where(Campaign.campaign_type == campaign_type)
-    
+
     stmt = stmt.limit(limit)
-    
+
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -85,10 +86,10 @@ async def get_campaign(
     stmt = select(Campaign).where(Campaign.id == campaign_id)
     result = await db.execute(stmt)
     campaign = result.scalar_one_or_none()
-    
+
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    
+
     return campaign
 
 
@@ -101,21 +102,20 @@ async def launch_campaign(
     stmt = select(Campaign).where(Campaign.id == campaign_id)
     result = await db.execute(stmt)
     campaign = result.scalar_one_or_none()
-    
+
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    
+
     if campaign.status != "draft":
         raise HTTPException(
-            status_code=400,
-            detail="Campaign must be in draft status to launch"
+            status_code=400, detail="Campaign must be in draft status to launch"
         )
-    
+
     campaign.status = "active"
     campaign.launched_at = datetime.utcnow()
     await db.commit()
     await db.refresh(campaign)
-    
+
     return {"status": "success", "campaign": campaign}
 
 
@@ -126,7 +126,7 @@ async def get_campaign_performance(
 ):
     """
     Get campaign performance metrics.
-    
+
     Returns:
     - sent_count
     - response_count
@@ -137,20 +137,20 @@ async def get_campaign_performance(
     stmt = select(Campaign).where(Campaign.id == campaign_id)
     result = await db.execute(stmt)
     campaign = result.scalar_one_or_none()
-    
+
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    
+
     response_rate = (
         (campaign.response_count / campaign.sent_count)
         if campaign.sent_count > 0
         else 0
     )
-    
+
     # TODO: Query leads generated from this campaign
     # For now, return placeholder
     leads_generated = 0
-    
+
     return {
         "campaign_id": campaign_id,
         "name": campaign.name,
@@ -160,4 +160,3 @@ async def get_campaign_performance(
         "leads_generated": leads_generated,
         "status": campaign.status,
     }
-

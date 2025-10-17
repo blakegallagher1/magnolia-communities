@@ -1,6 +1,7 @@
 """
 Database configuration and session management.
 """
+
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
@@ -11,7 +12,9 @@ from app.core.config import settings
 # Convert postgresql:// to postgresql+asyncpg:// only if not already async
 raw_dsn = str(settings.DATABASE_URL)
 DATABASE_URL = (
-    raw_dsn if raw_dsn.startswith("postgresql+asyncpg://") else raw_dsn.replace("postgresql://", "postgresql+asyncpg://")
+    raw_dsn
+    if raw_dsn.startswith("postgresql+asyncpg://")
+    else raw_dsn.replace("postgresql://", "postgresql+asyncpg://")
 )
 
 engine = create_async_engine(
@@ -52,4 +55,3 @@ async def init_db():
         await conn.execute("CREATE EXTENSION IF NOT EXISTS postgis")
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)
-

@@ -1,6 +1,7 @@
 """
 CRM endpoints for owners, parks, leads, and deals.
 """
+
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,10 +11,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.crm import (
-    Owner, Park, Lead, Deal,
-    PipelineStage, LeadSource
-)
+from app.models.crm import Owner, Park, Lead, Deal, PipelineStage, LeadSource
 
 router = APIRouter()
 
@@ -35,7 +33,7 @@ class OwnerResponse(BaseModel):
     email: Optional[str]
     phone: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -60,7 +58,7 @@ class ParkResponse(BaseModel):
     occupied_pads: Optional[int]
     lot_rent: Optional[float]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -80,7 +78,7 @@ class LeadResponse(BaseModel):
     stage: str
     asking_price: Optional[float]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -101,7 +99,7 @@ class DealResponse(BaseModel):
     cap_rate: Optional[float]
     dscr: Optional[float]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -131,7 +129,7 @@ async def list_owners(
     if search:
         stmt = stmt.where(Owner.name.ilike(f"%{search}%"))
     stmt = stmt.limit(limit)
-    
+
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -161,7 +159,7 @@ async def list_parks(
     if search:
         stmt = stmt.where(Park.name.ilike(f"%{search}%"))
     stmt = stmt.limit(limit)
-    
+
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -175,10 +173,10 @@ async def get_park(
     stmt = select(Park).where(Park.id == park_id)
     result = await db.execute(stmt)
     park = result.scalar_one_or_none()
-    
+
     if not park:
         raise HTTPException(status_code=404, detail="Park not found")
-    
+
     return park
 
 
@@ -210,7 +208,7 @@ async def list_leads(
     if source:
         stmt = stmt.where(Lead.source == source)
     stmt = stmt.limit(limit)
-    
+
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -240,7 +238,7 @@ async def list_deals(
     if stage:
         stmt = stmt.where(Deal.stage == stage)
     stmt = stmt.limit(limit)
-    
+
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -254,10 +252,10 @@ async def get_deal(
     stmt = select(Deal).where(Deal.id == deal_id)
     result = await db.execute(stmt)
     deal = result.scalar_one_or_none()
-    
+
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
-    
+
     return deal
 
 
@@ -267,16 +265,16 @@ async def get_pipeline_summary(
 ):
     """Get pipeline summary by stage."""
     from sqlalchemy import func
-    
+
     stmt = select(
         Deal.stage,
         func.count(Deal.id).label("count"),
         func.sum(Deal.purchase_price).label("total_value"),
     ).group_by(Deal.stage)
-    
+
     result = await db.execute(stmt)
     rows = result.all()
-    
+
     return {
         "summary": [
             {
@@ -287,4 +285,3 @@ async def get_pipeline_summary(
             for row in rows
         ]
     }
-

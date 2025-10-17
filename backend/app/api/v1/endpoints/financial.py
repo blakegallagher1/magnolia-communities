@@ -1,6 +1,7 @@
 """
 Financial screening and scenario modeling endpoints.
 """
+
 from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -12,6 +13,7 @@ router = APIRouter()
 
 class ScenarioInputs(BaseModel):
     """Input schema for financial scenario."""
+
     purchase_price: float = Field(..., gt=0)
     pad_count: int = Field(..., gt=0)
     current_rent: float = Field(..., gt=0)
@@ -26,6 +28,7 @@ class ScenarioInputs(BaseModel):
 
 class BuyBoxCriteria(BaseModel):
     """Buy-box criteria for evaluation."""
+
     min_dscr: float = Field(1.25, gt=0)
     min_debt_yield: float = Field(0.10, gt=0)
     min_cap_rate: float = Field(0.08, gt=0)
@@ -34,6 +37,7 @@ class BuyBoxCriteria(BaseModel):
 
 class ProFormaRequest(BaseModel):
     """Request schema for pro forma generation."""
+
     scenario: ScenarioInputs
     projection_years: int = Field(5, ge=1, le=20)
     rent_growth: float = Field(0.03, ge=-0.1, le=0.2)
@@ -47,7 +51,7 @@ async def calculate_base_scenario(
 ):
     """
     Calculate base case financial scenario.
-    
+
     Returns comprehensive analysis including:
     - Revenue breakdown (gross income, vacancy, EGI)
     - Expense breakdown and ratios
@@ -56,7 +60,7 @@ async def calculate_base_scenario(
     - Key metrics (Cap Rate, DSCR, Debt Yield, CoC)
     """
     service = FinancialScreeningService()
-    
+
     scenario = service.build_base_scenario(
         purchase_price=inputs.purchase_price,
         pad_count=inputs.pad_count,
@@ -69,7 +73,7 @@ async def calculate_base_scenario(
         interest_rate=inputs.interest_rate,
         term_years=inputs.term_years,
     )
-    
+
     return scenario
 
 
@@ -79,7 +83,7 @@ async def run_stress_scenarios(
 ):
     """
     Run comprehensive stress test scenarios.
-    
+
     Stress scenarios include:
     - Rent decreases: -$10, -$25, -$50/month
     - Occupancy drops: 85%, 80%, 70%
@@ -87,7 +91,7 @@ async def run_stress_scenarios(
     - Rate increases: +100bps, +200bps
     """
     service = FinancialScreeningService()
-    
+
     # First build base scenario
     base_scenario = service.build_base_scenario(
         purchase_price=inputs.purchase_price,
@@ -101,10 +105,10 @@ async def run_stress_scenarios(
         interest_rate=inputs.interest_rate,
         term_years=inputs.term_years,
     )
-    
+
     # Run stress tests
     stress_scenarios = service.run_stress_scenarios(base_scenario)
-    
+
     return {
         "base_scenario": base_scenario,
         "stress_scenarios": stress_scenarios,
@@ -118,11 +122,11 @@ async def evaluate_buy_box(
 ):
     """
     Evaluate scenario against buy-box criteria.
-    
+
     Returns pass/fail verdict with detailed breakdown of each criterion.
     """
     service = FinancialScreeningService()
-    
+
     scenario = service.build_base_scenario(
         purchase_price=inputs.purchase_price,
         pad_count=inputs.pad_count,
@@ -135,7 +139,7 @@ async def evaluate_buy_box(
         interest_rate=inputs.interest_rate,
         term_years=inputs.term_years,
     )
-    
+
     evaluation = service.evaluate_buy_box(
         scenario=scenario,
         min_dscr=criteria.min_dscr,
@@ -143,7 +147,7 @@ async def evaluate_buy_box(
         min_cap_rate=criteria.min_cap_rate,
         max_price_per_pad=criteria.max_price_per_pad,
     )
-    
+
     return {
         "scenario": scenario,
         "buy_box_evaluation": evaluation,
@@ -156,7 +160,7 @@ async def generate_pro_forma(
 ):
     """
     Generate multi-year pro forma with projections and IRR.
-    
+
     Includes:
     - Annual projections with rent/expense growth
     - Exit valuation
@@ -164,7 +168,7 @@ async def generate_pro_forma(
     - IRR calculation
     """
     service = FinancialScreeningService()
-    
+
     # Build base scenario
     base_scenario = service.build_base_scenario(
         purchase_price=request.scenario.purchase_price,
@@ -178,7 +182,7 @@ async def generate_pro_forma(
         interest_rate=request.scenario.interest_rate,
         term_years=request.scenario.term_years,
     )
-    
+
     # Generate pro forma
     pro_forma = service.generate_pro_forma(
         base_scenario=base_scenario,
@@ -187,7 +191,7 @@ async def generate_pro_forma(
         expense_growth=request.expense_growth,
         exit_cap_rate=request.exit_cap_rate,
     )
-    
+
     return {
         "base_scenario": base_scenario,
         "pro_forma": pro_forma,
@@ -205,11 +209,11 @@ async def quick_financial_screen(
     - Stress scenarios
     - Buy-box evaluation
     - 5-year pro forma
-    
+
     One-stop endpoint for complete deal analysis.
     """
     service = FinancialScreeningService()
-    
+
     # Base scenario
     base_scenario = service.build_base_scenario(
         purchase_price=inputs.purchase_price,
@@ -223,10 +227,10 @@ async def quick_financial_screen(
         interest_rate=inputs.interest_rate,
         term_years=inputs.term_years,
     )
-    
+
     # Stress scenarios
     stress_scenarios = service.run_stress_scenarios(base_scenario)
-    
+
     # Buy-box evaluation
     buy_box = service.evaluate_buy_box(
         scenario=base_scenario,
@@ -235,20 +239,17 @@ async def quick_financial_screen(
         min_cap_rate=criteria.min_cap_rate,
         max_price_per_pad=criteria.max_price_per_pad,
     )
-    
+
     # Pro forma
     pro_forma = service.generate_pro_forma(
         base_scenario=base_scenario,
         projection_years=5,
     )
-    
+
     return {
         "base_scenario": base_scenario,
         "stress_scenarios": stress_scenarios[:5],  # Top 5 stress tests
         "buy_box_evaluation": buy_box,
         "pro_forma": pro_forma,
-        "recommendation": (
-            "PASS" if buy_box["passes_buy_box"] else "FAIL"
-        ),
+        "recommendation": ("PASS" if buy_box["passes_buy_box"] else "FAIL"),
     }
-

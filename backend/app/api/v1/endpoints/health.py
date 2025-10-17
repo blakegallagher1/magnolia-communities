@@ -1,6 +1,7 @@
 """
 Health check endpoints.
 """
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -21,7 +22,7 @@ async def health_check():
 async def detailed_health(db: AsyncSession = Depends(get_db)):
     """Detailed health check including database and redis."""
     health_status = {"status": "healthy", "checks": {}}
-    
+
     # Check database
     try:
         result = await db.execute(text("SELECT 1"))
@@ -30,7 +31,7 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         health_status["checks"]["database"] = f"unhealthy: {str(e)}"
         health_status["status"] = "degraded"
-    
+
     # Check Redis
     try:
         redis = await get_redis()
@@ -39,7 +40,7 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         health_status["checks"]["redis"] = f"unhealthy: {str(e)}"
         health_status["status"] = "degraded"
-    
+
     # Check PostGIS
     try:
         result = await db.execute(text("SELECT PostGIS_version()"))
@@ -47,6 +48,5 @@ async def detailed_health(db: AsyncSession = Depends(get_db)):
         health_status["checks"]["postgis"] = f"healthy ({version})"
     except Exception as e:
         health_status["checks"]["postgis"] = f"unhealthy: {str(e)}"
-    
-    return health_status
 
+    return health_status

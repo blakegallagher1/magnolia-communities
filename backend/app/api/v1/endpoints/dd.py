@@ -1,6 +1,7 @@
 """
 Due diligence checklist and document management endpoints.
 """
+
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,10 +11,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.dd import (
-    DDChecklist, DDItem,
-    DDItemStatus, DDCategory, RiskLevel
-)
+from app.models.dd import DDChecklist, DDItem, DDItemStatus, DDCategory, RiskLevel
 
 router = APIRouter()
 
@@ -30,7 +28,7 @@ class DDChecklistResponse(BaseModel):
     risk_score: Optional[int]
     overall_risk: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -61,7 +59,7 @@ class DDItemResponse(BaseModel):
     risk_level: Optional[str]
     assigned_to: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -77,13 +75,13 @@ async def create_checklist(
     db.add(db_checklist)
     await db.commit()
     await db.refresh(db_checklist)
-    
+
     # Create default checklist items
     default_items = _get_default_checklist_items(db_checklist.id)
     for item in default_items:
         db.add(item)
     await db.commit()
-    
+
     return db_checklist
 
 
@@ -96,10 +94,10 @@ async def get_checklist(
     stmt = select(DDChecklist).where(DDChecklist.id == checklist_id)
     result = await db.execute(stmt)
     checklist = result.scalar_one_or_none()
-    
+
     if not checklist:
         raise HTTPException(status_code=404, detail="Checklist not found")
-    
+
     return checklist
 
 
@@ -112,12 +110,12 @@ async def get_checklist_items(
 ):
     """Get all items for a checklist."""
     stmt = select(DDItem).where(DDItem.checklist_id == checklist_id)
-    
+
     if category:
         stmt = stmt.where(DDItem.category == category)
     if status:
         stmt = stmt.where(DDItem.status == status)
-    
+
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -133,10 +131,10 @@ async def create_item(
     db.add(db_item)
     await db.commit()
     await db.refresh(db_item)
-    
+
     # Update checklist completion percentage
     await _update_checklist_completion(db, item.checklist_id)
-    
+
     return db_item
 
 
@@ -150,20 +148,20 @@ async def update_item(
     stmt = select(DDItem).where(DDItem.id == item_id)
     result = await db.execute(stmt)
     item = result.scalar_one_or_none()
-    
+
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    
+
     # Update fields
     for field, value in update.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
-    
+
     await db.commit()
     await db.refresh(item)
-    
+
     # Update checklist completion
     await _update_checklist_completion(db, item.checklist_id)
-    
+
     return item
 
 
@@ -335,29 +333,28 @@ def _get_default_checklist_items(checklist_id: UUID) -> List[DDItem]:
             risk_level=RiskLevel.LOW,
         ),
     ]
-    
+
     return items
 
 
-async def _update_checklist_completion(
-    db: AsyncSession, checklist_id: UUID
-):
+async def _update_checklist_completion(db: AsyncSession, checklist_id: UUID):
     """Update checklist completion percentage and risk score."""
     # Get all items
     stmt = select(DDItem).where(DDItem.checklist_id == checklist_id)
     result = await db.execute(stmt)
     items = list(result.scalars().all())
-    
+
     if not items:
         return
-    
+
     # Calculate completion
     completed = sum(
-        1 for item in items
+        1
+        for item in items
         if item.status in [DDItemStatus.VERIFIED, DDItemStatus.ESCROWED]
     )
     completion_pct = int((completed / len(items)) * 100)
-    
+
     # Calculate risk score (weighted by item risk level)
     risk_weights = {
         RiskLevel.LOW: 1,
@@ -365,22 +362,22 @@ async def _update_checklist_completion(
         RiskLevel.HIGH: 3,
         RiskLevel.CRITICAL: 4,
     }
-    
+
     total_risk = 0
     max_risk = 0
-    
+
     for item in items:
         weight = risk_weights.get(item.risk_level, 2)
         max_risk += weight * 4  # Max score per item
-        
+
         if item.status == DDItemStatus.PENDING:
             total_risk += weight * 4
         elif item.status == DDItemStatus.DEFERRED:
             total_risk += weight * 2
         # Verified and Escrowed add no risk
-    
+
     risk_score = int((total_risk / max_risk) * 100) if max_risk > 0 else 0
-    
+
     # Determine overall risk
     if risk_score >= 75:
         overall_risk = RiskLevel.CRITICAL
@@ -390,15 +387,14 @@ async def _update_checklist_completion(
         overall_risk = RiskLevel.MEDIUM
     else:
         overall_risk = RiskLevel.LOW
-    
+
     # Update checklist
     stmt = select(DDChecklist).where(DDChecklist.id == checklist_id)
     result = await db.execute(stmt)
     checklist = result.scalar_one_or_none()
-    
+
     if checklist:
         checklist.completion_percentage = completion_pct
         checklist.risk_score = risk_score
         checklist.overall_risk = overall_risk
         await db.commit()
-

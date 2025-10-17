@@ -1,6 +1,7 @@
 """
 API v1 router - aggregates all endpoint routers.
 """
+
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
@@ -24,4 +25,3 @@ api_router.include_router(campaigns.router, prefix="/campaigns", tags=["campaign
 api_router.include_router(
     data_catalog.router, prefix="/data-catalog", tags=["data-catalog"]
 )
-

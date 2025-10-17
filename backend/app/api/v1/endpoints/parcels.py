@@ -1,6 +1,7 @@
 """
 Parcel and overlay endpoints.
 """
+
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +17,7 @@ router = APIRouter()
 
 class ParcelResponse(BaseModel):
     """Parcel response schema."""
+
     parcel_uid: str
     parcel_id: Optional[str]
     site_address: Optional[str]
@@ -24,13 +26,14 @@ class ParcelResponse(BaseModel):
     municipality: Optional[str]
     latitude: Optional[float]
     longitude: Optional[float]
-    
+
     class Config:
         from_attributes = True
 
 
 class ParcelOverlayResponse(BaseModel):
     """Parcel overlay response schema."""
+
     parcel_uid: str
     parcel_id: Optional[str]
     site_address: Optional[str]
@@ -53,19 +56,19 @@ async def search_parcels(
 ):
     """Search parcels by address, owner, or parcel ID."""
     stmt = select(Parcel)
-    
+
     if address:
         stmt = stmt.where(Parcel.site_address.ilike(f"%{address}%"))
     if owner:
         stmt = stmt.where(Parcel.owner_name.ilike(f"%{owner}%"))
     if parcel_id:
         stmt = stmt.where(Parcel.parcel_id == parcel_id)
-    
+
     stmt = stmt.limit(limit)
-    
+
     result = await db.execute(stmt)
     parcels = result.scalars().all()
-    
+
     return parcels
 
 
@@ -78,10 +81,10 @@ async def get_parcel(
     stmt = select(Parcel).where(Parcel.parcel_uid == parcel_uid)
     result = await db.execute(stmt)
     parcel = result.scalar_one_or_none()
-    
+
     if not parcel:
         raise HTTPException(status_code=404, detail="Parcel not found")
-    
+
     return parcel
 
 
@@ -99,10 +102,10 @@ async def get_parcel_overlay(
     """
     service = ParcelOverlayService(db)
     overlay = await service.get_parcel_overlay(parcel_uid)
-    
+
     if not overlay:
         raise HTTPException(status_code=404, detail="Parcel not found")
-    
+
     return overlay
 
 
@@ -132,4 +135,3 @@ async def list_high_311_parcels(
         limit=limit,
     )
     return {"count": len(parcels), "parcels": parcels}
-

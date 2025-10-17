@@ -1,6 +1,7 @@
 """
 Data catalog and freshness tracking endpoints.
 """
+
 from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,7 @@ router = APIRouter()
 
 class DataSourceStatus(BaseModel):
     """Data source status schema."""
+
     name: str
     status: str
     last_ingest: datetime | None
@@ -27,6 +29,7 @@ class DataSourceStatus(BaseModel):
 
 class DataHealthResponse(BaseModel):
     """Data health summary schema."""
+
     total_sources: int
     healthy: int
     degraded: int
@@ -40,7 +43,7 @@ async def get_data_health(
 ):
     """
     Get overall data health summary.
-    
+
     Returns status of all registered data sources including:
     - Total source count
     - Healthy/degraded/failed counts
@@ -50,11 +53,11 @@ async def get_data_health(
     cache_service = CacheService(redis)
     socrata = SocrataConnector(cache_service)
     arcgis = ArcGISConnector(cache_service)
-    
+
     try:
         service = DataCatalogService(db, socrata, arcgis)
         summary = await service.get_health_summary()
-        
+
         return summary
     finally:
         await socrata.close()
@@ -68,7 +71,7 @@ async def check_source_freshness(
 ):
     """
     Check if a data source needs refresh.
-    
+
     Compares remote updated_at timestamp with local cache.
     Returns needs_refresh=True if remote is newer.
     """
@@ -76,11 +79,11 @@ async def check_source_freshness(
     cache_service = CacheService(redis)
     socrata = SocrataConnector(cache_service)
     arcgis = ArcGISConnector(cache_service)
-    
+
     try:
         service = DataCatalogService(db, socrata, arcgis)
         freshness = await service.check_freshness(source_name)
-        
+
         return freshness
     finally:
         await socrata.close()
@@ -96,11 +99,11 @@ async def list_data_sources(
     cache_service = CacheService(redis)
     socrata = SocrataConnector(cache_service)
     arcgis = ArcGISConnector(cache_service)
-    
+
     try:
         service = DataCatalogService(db, socrata, arcgis)
         sources = await service.get_all_sources()
-        
+
         return {
             "count": len(sources),
             "sources": [
@@ -118,4 +121,3 @@ async def list_data_sources(
     finally:
         await socrata.close()
         await arcgis.close()
-

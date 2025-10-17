@@ -1,6 +1,7 @@
 """
 Logging configuration with structured JSON logging.
 """
+
 import logging
 import sys
 from pythonjsonlogger import jsonlogger
@@ -12,10 +13,10 @@ def setup_logging():
     """Configure structured JSON logging."""
     logger = logging.getLogger()
     logger.setLevel(getattr(logging, settings.LOG_LEVEL.upper()))
-    
+
     # Remove existing handlers
     logger.handlers.clear()
-    
+
     # Console handler with JSON formatter
     handler = logging.StreamHandler(sys.stdout)
     formatter = jsonlogger.JsonFormatter(
@@ -23,9 +24,8 @@ def setup_logging():
     )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    
+
     # Set levels for noisy libraries
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
-
