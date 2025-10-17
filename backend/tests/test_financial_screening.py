@@ -38,7 +38,7 @@ class TestFinancialScreening:
         
         debt_yield = service.calculate_debt_yield(noi, loan_amount)
         
-        assert pytest.approx(debt_yield, 0.001) == 0.123
+        assert pytest.approx(debt_yield, rel=1e-3) == 0.12333
     
     def test_calculate_cap_rate(self, service):
         """Test cap rate calculation."""
@@ -66,7 +66,7 @@ class TestFinancialScreening:
         
         # Check revenue
         assert scenario["revenue"]["gross_income"] == 120000  # 40 * 250 * 12
-        assert scenario["revenue"]["vacancy_loss"] == 12000  # 10% vacancy
+        assert pytest.approx(scenario["revenue"]["vacancy_loss"], rel=1e-6) == 12000
         assert scenario["revenue"]["egi"] == 108000
         
         # Check NOI

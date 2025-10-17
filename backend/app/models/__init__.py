@@ -8,6 +8,7 @@ from app.models.sr_311 import ServiceRequest311
 from app.models.crm import Owner, Park, Lead, Deal, Touchpoint, Campaign
 from app.models.dd import DDChecklist, DDItem, Document
 from app.models.financial import Loan, Insurance, RentRoll, Scenario
+from app.models.agents import ParcelHunterRun, ParcelHunterResult
 
 __all__ = [
     "DataCatalog",
@@ -32,4 +33,6 @@ __all__ = [
     "Insurance",
     "RentRoll",
     "Scenario",
+    "ParcelHunterRun",
+    "ParcelHunterResult",
 ]

@@ -49,7 +49,7 @@ class DataCatalogService:
             source_name=source_name,
             dataset_id=dataset_id,
             endpoint=endpoint,
-            metadata=metadata or {},
+            extra_metadata=metadata or {},
         )
 
         self.db.add(catalog_entry)

@@ -65,8 +65,7 @@ class DataCatalog(Base):
 
     # Metadata
     ingest_job_id = Column(String(255))
-    metadata = Column(JSON)
-
+    extra_metadata = Column(JSON)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
