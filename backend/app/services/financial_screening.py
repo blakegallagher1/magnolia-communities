@@ -4,7 +4,6 @@ Implements buy-box criteria and stress testing.
 """
 import logging
 from typing import Dict, Any, List, Optional
-import numpy as np
 from numpy_financial import irr as np_irr
 
 logger = logging.getLogger(__name__)
@@ -299,7 +298,7 @@ class FinancialScreeningService:
         - Price/Pad ≤ $15,000
         """
         metrics = scenario["metrics"]
-        inputs = scenario["inputs"]
+        # inputs = scenario["inputs"]
         
         criteria_checks = {
             "dscr_check": {

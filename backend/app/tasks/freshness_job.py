@@ -4,7 +4,6 @@ Nightly freshness job for checking and refreshing data sources.
 import logging
 from typing import List
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.core.redis import get_redis, CacheService

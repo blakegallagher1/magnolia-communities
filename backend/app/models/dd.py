@@ -3,7 +3,7 @@ Due Diligence models.
 """
 from datetime import datetime
 from sqlalchemy import (
-    Column, String, DateTime, Text, Boolean, ForeignKey, Integer,
+    Column, String, DateTime, Text, ForeignKey, Integer,
     Enum as SQLEnum, JSON
 )
 from sqlalchemy.dialects.postgresql import UUID

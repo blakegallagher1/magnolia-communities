@@ -3,7 +3,7 @@ ArcGIS REST API connector for EBRGIS map services.
 Supports query operations, spatial queries, and pagination.
 """
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from enum import Enum
 import httpx
 from tenacity import (

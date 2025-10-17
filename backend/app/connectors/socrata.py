@@ -4,7 +4,7 @@ Implements query builder, caching, retry logic, and rate limiting.
 """
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 import httpx
 from tenacity import (
     retry,

@@ -2,7 +2,7 @@
 311 Service Request models.
 """
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, Index
+from sqlalchemy import Column, String, DateTime, Text, Index, Float
 from sqlalchemy.dialects.postgresql import UUID
 from geoalchemy2 import Geometry
 import uuid

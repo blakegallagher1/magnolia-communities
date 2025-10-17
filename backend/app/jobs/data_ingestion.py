@@ -3,16 +3,16 @@ Data ingestion jobs for syncing external data sources.
 """
 import logging
 import hashlib
-from typing import List, Dict, Any
+from typing import Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.connectors.socrata import SocrataConnector, PROPERTY_INFO_FIELDS
 from app.connectors.arcgis import ArcGISConnector, ArcGISService
-from app.models.parcels import Parcel, ZoningDistrict, CityLimit, AdjudicatedParcel
+from app.models.parcels import Parcel, ZoningDistrict
 from app.models.sr_311 import ServiceRequest311
-from app.models.data_catalog import DataCatalog, DataSourceType
+from app.models.data_catalog import DataSourceType
 from app.services.data_catalog import DataCatalogService
 
 logger = logging.getLogger(__name__)
@@ -136,7 +136,7 @@ class DataIngestionJob:
             # Insert new zoning
             for feature in features:
                 attrs = feature.get("attributes", {})
-                geom = feature.get("geometry")
+                # geometry is available but not stored yet; ignore for now
                 
                 zone = ZoningDistrict(
                     zone_code=attrs.get("ZONE_CODE") or attrs.get("ZONING"),

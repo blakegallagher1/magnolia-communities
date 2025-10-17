@@ -1,8 +1,8 @@
 """
 Financial screening and scenario modeling endpoints.
 """
-from typing import List, Optional
-from fastapi import APIRouter, Depends
+from typing import Optional
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.services.financial_screening import FinancialScreeningService

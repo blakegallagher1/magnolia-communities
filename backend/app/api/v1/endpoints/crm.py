@@ -11,7 +11,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.models.crm import (
-    Owner, Park, Lead, Deal, Campaign,
+    Owner, Park, Lead, Deal,
     PipelineStage, LeadSource
 )
 

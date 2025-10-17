@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from sqlalchemy import select, func, and_, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from geoalchemy2.functions import ST_Intersects, ST_Within, ST_DWithin, ST_Distance
+from geoalchemy2.functions import ST_Intersects, ST_Within, ST_DWithin
 
 from app.models.parcels import Parcel, ZoningDistrict, CityLimit, AdjudicatedParcel
 from app.models.sr_311 import ServiceRequest311

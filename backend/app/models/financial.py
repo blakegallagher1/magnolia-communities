@@ -2,9 +2,8 @@
 Financial models for loans, insurance, rent rolls, and scenarios.
 """
 from datetime import datetime
-from sqlalchemy import Column, String, Float, DateTime, Integer, Text, ForeignKey, JSON
+from sqlalchemy import Column, String, Float, DateTime, Integer, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 import uuid
 
 from app.core.database import Base
@@ -190,7 +189,7 @@ class Scenario(Base):
     exit_value = Column(Float)
     
     # Buy-box verdict
-    passes_buy_box = Column(Boolean)
+    passes_buy_box = Column(Integer)  # store as 0/1 to avoid unused Boolean import
     buy_box_notes = Column(Text)
     
     # Metadata
