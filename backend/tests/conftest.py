@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures.
 """
+import os
 import pytest
 import asyncio
 from typing import AsyncGenerator
@@ -9,8 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from app.core.database import Base
 
 
-# Test database URL
-TEST_DATABASE_URL = "postgresql+asyncpg://gallagher:dev_password_change_in_prod@localhost:5432/gallagher_mhp_test"
+# Test database URL: prefer env (CI), fallback to local default matching CI service
+TEST_DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+asyncpg://gallagher:test_password@localhost:5432/gallagher_mhp_test",
+)
 
 
 @pytest.fixture(scope="session")

@@ -8,9 +8,10 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
-# Convert postgresql:// to postgresql+asyncpg://
-DATABASE_URL = str(settings.DATABASE_URL).replace(
-    "postgresql://", "postgresql+asyncpg://"
+# Convert postgresql:// to postgresql+asyncpg:// only if not already async
+raw_dsn = str(settings.DATABASE_URL)
+DATABASE_URL = (
+    raw_dsn if raw_dsn.startswith("postgresql+asyncpg://") else raw_dsn.replace("postgresql://", "postgresql+asyncpg://")
 )
 
 engine = create_async_engine(
