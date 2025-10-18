@@ -1,11 +1,10 @@
-"""
-ArcGIS REST API connector for EBRGIS map services.
-Supports query operations, spatial queries, and pagination.
-"""
+"""ArcGIS REST API connector for EBRGIS map services."""
 
+import json
 import logging
-from typing import List, Dict, Any, Optional
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 import httpx
 from tenacity import (
     retry,
@@ -89,15 +88,28 @@ class ArcGISConnector:
         where: Optional[str] = None,
         out_fields: Optional[List[str]] = None,
         geometry: Optional[str] = None,
+        geometry_type: Optional[str] = None,
+        return_geometry: bool = True,
+        spatial_rel: SpatialRelationship = SpatialRelationship.INTERSECTS,
     ) -> str:
-        """Generate cache key from query parameters."""
-        parts = [
-            f"arcgis:{service.value}",
-            f"where:{where or '1=1'}",
-            f"fields:{','.join(out_fields) if out_fields else '*'}",
-            f"geom:{geometry or 'none'}",
-        ]
-        return ":".join(parts)
+        """Generate a deterministic cache key from the provided parameters."""
+
+        payload = {
+            "service": service.value,
+            "where": where or "1=1",
+            "out_fields": sorted(out_fields) if out_fields else None,
+            "geometry": geometry or None,
+            "geometry_type": geometry_type or None,
+            "return_geometry": return_geometry,
+            "spatial_rel": spatial_rel.value if spatial_rel else None,
+        }
+        serialized = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+        return f"arcgis:{serialized}"
 
     @retry(
         stop=stop_after_attempt(5),
@@ -138,13 +150,28 @@ class ArcGISConnector:
             Response dictionary with 'features' array
         """
         # Check cache first
-        cache_key = self._build_cache_key(service, where, out_fields, geometry)
+        cache_key = self._build_cache_key(
+            service,
+            where,
+            out_fields,
+            geometry,
+            geometry_type,
+            return_geometry,
+            spatial_rel,
+        )
 
         if use_cache and result_offset == 0:
             cached = await self.cache.get(cache_key)
-            if cached:
-                logger.info(f"Cache hit for {service.value}")
+            if cached is not None:
+                logger.info(
+                    "arcgis_cache_hit",
+                    extra={"service": service.value, "cache_key": cache_key},
+                )
                 return cached
+            logger.info(
+                "arcgis_cache_miss",
+                extra={"service": service.value, "cache_key": cache_key},
+            )
 
         # Build query parameters
         params = {
@@ -171,7 +198,10 @@ class ArcGISConnector:
 
         # Make request
         url = f"{self._get_service_url(service)}/query"
-        logger.info(f"Querying ArcGIS: {url}")
+        logger.info(
+            "arcgis_request",
+            extra={"service": service.value, "url": url, "params": params},
+        )
 
         response = await self.client.get(url, params=params)
         response.raise_for_status()
@@ -184,10 +214,25 @@ class ArcGISConnector:
 
         # Cache results
         if use_cache and result_offset == 0:
-            await self.cache.set(cache_key, result)
+            await self.cache.set(
+                cache_key,
+                result,
+                ttl=settings.ARCGIS_CACHE_TTL,
+            )
+            logger.info(
+                "arcgis_cache_store",
+                extra={
+                    "service": service.value,
+                    "cache_key": cache_key,
+                    "ttl": settings.ARCGIS_CACHE_TTL,
+                },
+            )
 
         feature_count = len(result.get("features", []))
-        logger.info(f"Retrieved {feature_count} features from {service.value}")
+        logger.info(
+            "arcgis_response",
+            extra={"service": service.value, "feature_count": feature_count},
+        )
 
         return result
 

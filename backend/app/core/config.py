@@ -44,6 +44,8 @@ class Settings(BaseSettings):
         "https://services.arcgis.com/KYvXadMcgf0K1EzK/arcgis/rest/services"
     )
     ARCGIS_MAX_RECORD_COUNT: int = 1000
+    SOCRATA_CACHE_TTL: int = 600  # seconds
+    ARCGIS_CACHE_TTL: int = 600  # seconds
 
     # Data Catalog
     DATA_CATALOG_REFRESH_INTERVAL: int = 86400  # 24 hours
