@@ -1,10 +1,9 @@
-"""
-Socrata SODA v2 API connector for Open Data BR.
-Implements query builder, caching, retry logic, and rate limiting.
-"""
+"""Socrata SODA v2 API connector for Open Data BR."""
 
+import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import httpx
 from tenacity import (
     retry,
@@ -65,16 +64,23 @@ class SocrataConnector:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> str:
-        """Generate cache key from query parameters."""
-        parts = [
-            f"socrata:{dataset_id}",
-            f"select:{','.join(select) if select else '*'}",
-            f"where:{where or 'none'}",
-            f"order:{order or 'none'}",
-            f"limit:{limit or 'none'}",
-            f"offset:{offset or 0}",
-        ]
-        return ":".join(parts)
+        """Generate a deterministic cache key from query parameters."""
+
+        payload = {
+            "dataset": dataset_id,
+            "select": sorted(select) if select else None,
+            "where": where or None,
+            "order": order or None,
+            "limit": limit,
+            "offset": offset,
+        }
+        serialized = json.dumps(
+            payload,
+            sort_keys=True,
+            default=str,
+            separators=(",", ":"),
+        )
+        return f"socrata:{serialized}"
 
     @retry(
         stop=stop_after_attempt(5),
@@ -115,9 +121,16 @@ class SocrataConnector:
 
         if use_cache:
             cached = await self.cache.get(cache_key)
-            if cached:
-                logger.info(f"Cache hit for {dataset_id}")
+            if cached is not None:
+                logger.info(
+                    "socrata_cache_hit",
+                    extra={"dataset_id": dataset_id, "cache_key": cache_key},
+                )
                 return cached
+            logger.info(
+                "socrata_cache_miss",
+                extra={"dataset_id": dataset_id, "cache_key": cache_key},
+            )
 
         # Build query parameters
         params = {}
@@ -134,7 +147,10 @@ class SocrataConnector:
 
         # Make request
         url = f"{self.base_url}/{dataset_id}.json"
-        logger.info(f"Querying Socrata: {url} with params: {params}")
+        logger.info(
+            "socrata_request",
+            extra={"dataset_id": dataset_id, "url": url, "params": params},
+        )
 
         response = await self.client.get(
             url,
@@ -147,9 +163,24 @@ class SocrataConnector:
 
         # Cache results
         if use_cache:
-            await self.cache.set(cache_key, results)
+            await self.cache.set(
+                cache_key,
+                results,
+                ttl=settings.SOCRATA_CACHE_TTL,
+            )
+            logger.info(
+                "socrata_cache_store",
+                extra={
+                    "dataset_id": dataset_id,
+                    "cache_key": cache_key,
+                    "ttl": settings.SOCRATA_CACHE_TTL,
+                },
+            )
 
-        logger.info(f"Retrieved {len(results)} records from {dataset_id}")
+        logger.info(
+            "socrata_response",
+            extra={"dataset_id": dataset_id, "record_count": len(results)},
+        )
         return results
 
     async def get_metadata(self, dataset_id: str) -> Dict[str, Any]:
