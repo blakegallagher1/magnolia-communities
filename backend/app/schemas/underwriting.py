@@ -56,7 +56,9 @@ class T12Financials(BaseModel):
         description="If True, apply management_fee_rate to EGI and add to expenses",
     )
 
-    def total_operating_expenses(self, effective_gross_income: float | None = None) -> float:
+    def total_operating_expenses(
+        self, effective_gross_income: float | None = None
+    ) -> float:
         """
         Compute total operating expenses, optionally adding management fees.
 
@@ -126,7 +128,9 @@ class UnderwritingRunRequest(BaseModel):
     property: UnderwritingPropertyProfile
     loan: UnderwritingLoanTerms
     t12: T12Financials
-    assumptions: UnderwritingAssumptions = Field(default_factory=UnderwritingAssumptions)
+    assumptions: UnderwritingAssumptions = Field(
+        default_factory=UnderwritingAssumptions
+    )
 
 
 class UnderwritingVerdict(str, Enum):

@@ -11,18 +11,21 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.rate_limiter import limiter
 from app.core.redis import get_redis
 
 router = APIRouter()
 
 
 @router.get("/liveness", status_code=status.HTTP_200_OK)
+@limiter.exempt
 async def liveness() -> Dict[str, str]:
     """Simple liveness probe."""
     return {"status": "alive"}
 
 
 @router.get("/readiness")
+@limiter.exempt
 async def readiness(
     db: AsyncSession = Depends(get_db),
     redis: Redis = Depends(get_redis),

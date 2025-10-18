@@ -55,7 +55,9 @@ def _normalise_path(request: Request) -> str:
     return request.url.path
 
 
-def observe_http_request(method: str, path: str, status_code: int, duration: float) -> None:
+def observe_http_request(
+    method: str, path: str, status_code: int, duration: float
+) -> None:
     """Record metrics for an HTTP request."""
     status_str = str(status_code)
     HTTP_REQUESTS_TOTAL.labels(method=method, path=path, status=status_str).inc()
@@ -78,7 +80,9 @@ def record_external_api_retry(service: str) -> None:
 class MetricsMiddleware(BaseHTTPMiddleware):
     """ASGI middleware for capturing request metrics."""
 
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         method = request.method
         path = _normalise_path(request)
         start = time.perf_counter()

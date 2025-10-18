@@ -280,11 +280,7 @@ class UnderwritingAutopilotService:
             )
 
         total_vacancy = t12.vacancy_loss + t12.credit_loss + t12.concessions
-        egi = (
-            t12.gross_potential_rent
-            - total_vacancy
-            + t12.other_income
-        )
+        egi = t12.gross_potential_rent - total_vacancy + t12.other_income
         operating_expenses = t12.total_operating_expenses(egi)
 
         if operating_expenses >= egi and egi > 0:
@@ -390,16 +386,14 @@ class UnderwritingAutopilotService:
                 if effective_gross_income
                 else 0.0
             ),
-            cap_rate=noi / normalized.purchase_price
-            if normalized.purchase_price
-            else 0.0,
+            cap_rate=(
+                noi / normalized.purchase_price if normalized.purchase_price else 0.0
+            ),
             dscr=noi / annual_debt_service if annual_debt_service else 0.0,
-            debt_yield=noi / normalized.loan_amount
-            if normalized.loan_amount
-            else 0.0,
-            cash_on_cash=net_cash_flow / normalized.equity
-            if normalized.equity
-            else 0.0,
+            debt_yield=noi / normalized.loan_amount if normalized.loan_amount else 0.0,
+            cash_on_cash=(
+                net_cash_flow / normalized.equity if normalized.equity else 0.0
+            ),
             annual_debt_service=annual_debt_service,
             loan_to_value=normalized.loan_to_value,
             equity=normalized.equity,
@@ -424,7 +418,9 @@ class UnderwritingAutopilotService:
             classification=classification,
         )
 
-    def _build_stress_tests(self, normalized: NormalizedInputs) -> List[UnderwritingScenarioResult]:
+    def _build_stress_tests(
+        self, normalized: NormalizedInputs
+    ) -> List[UnderwritingScenarioResult]:
         """Generate the standard underwriting stress scenarios."""
         assumptions = normalized.assumptions
         scenarios: List[UnderwritingScenarioResult] = []
@@ -446,7 +442,9 @@ class UnderwritingAutopilotService:
             )
         )
 
-        upside_occupancy = max(normalized.occupancy_rate, assumptions.stabilized_occupancy)
+        upside_occupancy = max(
+            normalized.occupancy_rate, assumptions.stabilized_occupancy
+        )
         scenarios.append(
             self._build_scenario(
                 normalized,
@@ -467,9 +465,11 @@ class UnderwritingAutopilotService:
                 name="Interest Rate Shock",
                 description="Refinance or rate environment shifts +200 bps.",
                 assumptions={
-                    "interest_rate": normalized.interest_rate + assumptions.interest_rate_shock,
+                    "interest_rate": normalized.interest_rate
+                    + assumptions.interest_rate_shock,
                 },
-                interest_rate=normalized.interest_rate + assumptions.interest_rate_shock,
+                interest_rate=normalized.interest_rate
+                + assumptions.interest_rate_shock,
             )
         )
 
@@ -485,7 +485,9 @@ class UnderwritingAutopilotService:
 
         return scenarios
 
-    def _build_projection(self, normalized: NormalizedInputs) -> UnderwritingProjectionSummary:
+    def _build_projection(
+        self, normalized: NormalizedInputs
+    ) -> UnderwritingProjectionSummary:
         """Construct the 10-year plan including cash flows and IRR."""
         initial_equity = normalized.equity
         cash_flows = [-initial_equity]
@@ -502,8 +504,12 @@ class UnderwritingAutopilotService:
 
         for year in range(1, normalized.exit_year + 1):
             occupancy = self._projected_occupancy(normalized, year)
-            gross_rent = normalized.gross_potential_rent * ((1 + normalized.rent_growth) ** year)
-            other_income = normalized.other_income * ((1 + normalized.rent_growth) ** year)
+            gross_rent = normalized.gross_potential_rent * (
+                (1 + normalized.rent_growth) ** year
+            )
+            other_income = normalized.other_income * (
+                (1 + normalized.rent_growth) ** year
+            )
             vacancy_loss = gross_rent * (1 - occupancy)
             effective_gross_income = gross_rent - vacancy_loss + other_income
             operating_expenses = normalized.operating_expenses * (
@@ -520,7 +526,9 @@ class UnderwritingAutopilotService:
             )
 
             if year == normalized.exit_year:
-                exit_value = noi / normalized.exit_cap_rate if normalized.exit_cap_rate else 0.0
+                exit_value = (
+                    noi / normalized.exit_cap_rate if normalized.exit_cap_rate else 0.0
+                )
                 exit_proceeds = max(exit_value - remaining_balance, 0.0)
                 net_cash_flow += exit_proceeds
 
@@ -582,10 +590,14 @@ class UnderwritingAutopilotService:
             highlights.append(f"Cap rate of {metrics.cap_rate:.1%} meets target.")
 
         if metrics.dscr >= 1.25:
-            highlights.append(f"DSCR of {metrics.dscr:.2f} supports lender requirements.")
+            highlights.append(
+                f"DSCR of {metrics.dscr:.2f} supports lender requirements."
+            )
 
         if irr and irr >= 0.15:
-            highlights.append(f"Projected IRR {irr:.1%} at year {projection.sale_year}.")
+            highlights.append(
+                f"Projected IRR {irr:.1%} at year {projection.sale_year}."
+            )
 
         if metrics.cash_on_cash < 0.06:
             risks.append(f"Cash-on-cash return is thin at {metrics.cash_on_cash:.1%}.")
@@ -599,7 +611,9 @@ class UnderwritingAutopilotService:
             )
 
         if not highlights:
-            highlights.append("Stabilization path improves occupancy and NOI over hold.")
+            highlights.append(
+                "Stabilization path improves occupancy and NOI over hold."
+            )
 
         rationale = (
             "Automated underwriting based on submitted T12, loan terms, and projection"
@@ -715,21 +729,17 @@ class UnderwritingAutopilotService:
         require_irr: bool = False,
     ) -> UnderwritingVerdict:
         """Determine verdict bucket based on thresholds."""
-        irr_green = (irr is None and not require_irr) or (irr is not None and irr >= 0.15)
-        irr_yellow = (irr is None and not require_irr) or (irr is not None and irr >= 0.12)
+        irr_green = (irr is None and not require_irr) or (
+            irr is not None and irr >= 0.15
+        )
+        irr_yellow = (irr is None and not require_irr) or (
+            irr is not None and irr >= 0.12
+        )
 
-        if (
-            metrics.dscr >= 1.25
-            and metrics.cash_on_cash >= 0.08
-            and irr_green
-        ):
+        if metrics.dscr >= 1.25 and metrics.cash_on_cash >= 0.08 and irr_green:
             return UnderwritingVerdict.GREEN
 
-        if (
-            metrics.dscr >= 1.15
-            and metrics.cash_on_cash >= 0.06
-            and irr_yellow
-        ):
+        if metrics.dscr >= 1.15 and metrics.cash_on_cash >= 0.06 and irr_yellow:
             return UnderwritingVerdict.YELLOW
 
         return UnderwritingVerdict.RED

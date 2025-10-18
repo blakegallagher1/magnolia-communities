@@ -107,6 +107,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `POST /api/v1/financial/quick-screen` - Comprehensive quick screen (all-in-one)
 - `POST /api/v1/underwriting/run` - Execute underwriting autopilot (base + stress + 10-year plan)
 
+### Files
+- `POST /api/v1/files/presign` - Generate temporary signed S3 URL (authenticated usage placeholder)
+
 ### Due Diligence
 - `POST /api/v1/dd/checklists` - Create DD checklist for deal
 - `GET /api/v1/dd/checklists/{checklist_id}` - Get checklist
@@ -126,6 +129,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - **Structured Logging**: All application logs are emitted as JSON and include `request_id` and `user_agent` fields for correlation. Incoming requests without an `X-Request-ID` header receive a generated UUID, which is also returned in the response headers.
 - **Prometheus Metrics**: HTTP request latency, total counts, and error rates are exposed via `/metrics`. Cache hits/misses and external API retries are tracked for operational visibility.
 - **Health Probes**: Kubernetes-style liveness (`/api/v1/health/liveness`) and readiness (`/api/v1/health/readiness`) endpoints verify application uptime and dependency availability (Postgres + Redis).
+- **Rate Limiting**: Global IP-based throttling (100 requests/minute) is enforced, with sensitive write endpoints (e.g., underwriting runs) capped at 20 requests/minute.
+- **CORS**: Allowed origins include local development hosts plus production domains (`https://app.gallaghermhp.com`, `https://api.gallaghermhp.com`).
 
 ## Data Ingestion
 

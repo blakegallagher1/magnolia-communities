@@ -12,6 +12,8 @@ from app.api.v1.endpoints.financial import router as financial_router
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.parcel_hunter import router as parcel_hunter_router
 from app.api.v1.endpoints.parcels import router as parcels_router
+from app.api.v1.endpoints.files import router as files_router
+
 try:  # pragma: no cover - optional endpoint depending on feature flag
     from app.api.v1.endpoints.underwriting import router as underwriting_router
 except ImportError:  # pragma: no cover - backward compatibility
@@ -25,6 +27,7 @@ api_router.include_router(crm_router, prefix="/crm", tags=["crm"])
 api_router.include_router(financial_router, prefix="/financial", tags=["financial"])
 api_router.include_router(dd_router, prefix="/dd", tags=["due-diligence"])
 api_router.include_router(campaigns_router, prefix="/campaigns", tags=["campaigns"])
+api_router.include_router(files_router, prefix="/files", tags=["files"])
 api_router.include_router(
     data_catalog_router, prefix="/data-catalog", tags=["data-catalog"]
 )
@@ -33,5 +36,7 @@ api_router.include_router(
 )
 if underwriting_router:
     api_router.include_router(
-        underwriting_router, prefix="/underwriting", tags=["underwriting"]
+        underwriting_router,
+        prefix="/underwriting",
+        tags=["underwriting"],
     )
