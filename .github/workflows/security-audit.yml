@@ -80,7 +80,8 @@ jobs:
         working-directory: backend
         run: |
           # Fail if critical or high severity vulnerabilities found
-          pip-audit -r requirements.txt --vulnerability-service osv --desc on
+          # Ignore known advisory without a fix: GHSA-wj6h-64fc-37mp (ecdsa 0.19.1)
+          pip-audit -r requirements.txt --vulnerability-service osv --desc on --ignore-vuln GHSA-wj6h-64fc-37mp
       
       - name: Upload audit results
         if: always()
@@ -122,4 +123,3 @@ jobs:
           echo "- Backend: ${{ needs.backend-security.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Review detailed audit results in workflow artifacts." >> $GITHUB_STEP_SUMMARY
-
