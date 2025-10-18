@@ -1,4 +1,6 @@
-.PHONY: help up down logs backend-shell frontend-shell db-migrate db-upgrade test clean
+.PHONY: help up down logs backend-shell frontend-shell db-revision db-upgrade db-downgrade test clean
+
+rev ?= -1
 
 help:
 	@echo "GallagherMHP Command Platform - Available commands:"
@@ -8,8 +10,9 @@ help:
 	@echo "  make logs            - View logs from all services"
 	@echo "  make backend-shell   - Open shell in backend container"
 	@echo "  make frontend-shell  - Open shell in frontend container"
-	@echo "  make db-migrate      - Generate new migration"
-	@echo "  make db-upgrade      - Run database migrations"
+	@echo "  make db-revision     - Autogenerate Alembic revision (m=\"message\")"
+	@echo "  make db-upgrade      - Apply latest migrations"
+	@echo "  make db-downgrade    - Roll back migrations (rev=...)"
 	@echo "  make test            - Run backend tests"
 	@echo "  make clean           - Clean up volumes and containers"
 
@@ -32,11 +35,15 @@ backend-shell:
 frontend-shell:
 	docker-compose exec frontend /bin/sh
 
-db-migrate:
-	docker-compose exec backend alembic revision --autogenerate -m "$(msg)"
+db-revision:
+	@if [ -z "$(m)" ]; then echo 'Usage: make db-revision m="summary"'; exit 1; fi
+	cd backend && alembic revision --autogenerate -m "$(m)"
 
 db-upgrade:
-	docker-compose exec backend alembic upgrade head
+	cd backend && alembic upgrade head
+
+db-downgrade:
+	cd backend && alembic downgrade $(rev)
 
 test:
 	docker-compose exec backend pytest --cov=app
@@ -44,4 +51,3 @@ test:
 clean:
 	docker-compose down -v
 	@echo "All containers and volumes removed"
-

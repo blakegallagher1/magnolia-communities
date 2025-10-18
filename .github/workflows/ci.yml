@@ -76,6 +76,46 @@ jobs:
       run: |
         pytest --cov=app --cov-report=xml --cov-report=term
     
+    - name: Check migration drift
+      working-directory: ./backend
+      env:
+        DATABASE_URL: postgresql://gallagher:test_password@localhost:5432/gallagher_mhp_test
+        REDIS_URL: redis://localhost:6379
+        SECRET_KEY: test-secret-key-for-ci
+      run: |
+        alembic revision --autogenerate -m "drift-check"
+        generated=$(ls alembic/versions/*drift_check*.py 2>/dev/null || true)
+        if [ -n "$generated" ]; then
+          ALEMBIC_GENERATED="$generated" python <<'PY'
+import ast
+import os
+
+path = os.environ["ALEMBIC_GENERATED"]
+with open(path, "r", encoding="utf-8") as fh:
+    module = ast.parse(fh.read())
+
+def has_ops(fn):
+    return not (len(fn.body) == 1 and isinstance(fn.body[0], ast.Pass))
+
+status = 0
+for node in module.body:
+    if isinstance(node, ast.FunctionDef) and node.name in {"upgrade", "downgrade"}:
+        if has_ops(node):
+            status = 1
+            break
+
+raise SystemExit(status)
+PY
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "Schema drift detected. Generate a new Alembic revision."
+            git --no-pager diff "$generated"
+            rm -f "$generated"
+            exit 1
+          fi
+          rm -f "$generated"
+        fi
+
     - name: Upload coverage
       uses: codecov/codecov-action@v4
       with:
@@ -114,4 +154,3 @@ jobs:
     - name: Build
       working-directory: ./frontend
       run: npm run build
-
