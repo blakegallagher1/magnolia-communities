@@ -76,8 +76,10 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ### Health & Status
 - `GET /health` - Basic health check
-- `GET /health/detailed` - Detailed health with DB/Redis/PostGIS status
+- `GET /api/v1/health/liveness` - Lightweight probe to confirm the service is running
+- `GET /api/v1/health/readiness` - Readiness probe (checks Postgres + Redis connectivity)
 - `GET /api/v1/data-catalog/health` - Data source health summary
+- `GET /metrics` - Prometheus metrics scrape endpoint
 
 ### Parcels & Overlay
 - `GET /api/v1/parcels/search` - Search parcels by address/owner/parcel_id
@@ -118,6 +120,12 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `GET /api/v1/campaigns/{campaign_id}` - Get campaign
 - `PATCH /api/v1/campaigns/{campaign_id}/launch` - Launch campaign
 - `GET /api/v1/campaigns/{campaign_id}/performance` - Get performance metrics
+
+## Observability
+
+- **Structured Logging**: All application logs are emitted as JSON and include `request_id` and `user_agent` fields for correlation. Incoming requests without an `X-Request-ID` header receive a generated UUID, which is also returned in the response headers.
+- **Prometheus Metrics**: HTTP request latency, total counts, and error rates are exposed via `/metrics`. Cache hits/misses and external API retries are tracked for operational visibility.
+- **Health Probes**: Kubernetes-style liveness (`/api/v1/health/liveness`) and readiness (`/api/v1/health/readiness`) endpoints verify application uptime and dependency availability (Postgres + Redis).
 
 ## Data Ingestion
 

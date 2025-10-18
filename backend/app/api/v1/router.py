@@ -4,17 +4,18 @@ API v1 router - aggregates all endpoint routers.
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import (
-    health_router,
-    parcels_router,
-    crm_router,
-    financial_router,
-    dd_router,
-    campaigns_router,
-    data_catalog_router,
-    parcel_hunter_router,
-    underwriting_router,
-)
+from app.api.v1.endpoints.campaigns import router as campaigns_router
+from app.api.v1.endpoints.crm import router as crm_router
+from app.api.v1.endpoints.data_catalog import router as data_catalog_router
+from app.api.v1.endpoints.dd import router as dd_router
+from app.api.v1.endpoints.financial import router as financial_router
+from app.api.v1.endpoints.health import router as health_router
+from app.api.v1.endpoints.parcel_hunter import router as parcel_hunter_router
+from app.api.v1.endpoints.parcels import router as parcels_router
+try:  # pragma: no cover - optional endpoint depending on feature flag
+    from app.api.v1.endpoints.underwriting import router as underwriting_router
+except ImportError:  # pragma: no cover - backward compatibility
+    underwriting_router = None
 
 api_router = APIRouter()
 
@@ -30,6 +31,7 @@ api_router.include_router(
 api_router.include_router(
     parcel_hunter_router, prefix="/parcel-hunter", tags=["agents"]
 )
-api_router.include_router(
-    underwriting_router, prefix="/underwriting", tags=["underwriting"]
-)
+if underwriting_router:
+    api_router.include_router(
+        underwriting_router, prefix="/underwriting", tags=["underwriting"]
+    )

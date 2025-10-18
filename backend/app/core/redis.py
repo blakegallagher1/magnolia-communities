@@ -3,9 +3,12 @@ Redis cache client configuration.
 """
 
 import json
-from typing import Optional, Any
+from typing import Any, Optional
+
 from redis.asyncio import Redis, from_url
+
 from app.core.config import settings
+from app.core.metrics import record_cache_operation
 
 redis_client: Optional[Redis] = None
 
@@ -38,8 +41,10 @@ class CacheService:
     async def get(self, key: str) -> Optional[Any]:
         """Get value from cache."""
         value = await self.redis.get(key)
-        if value:
+        if value is not None:
+            record_cache_operation("hit")
             return json.loads(value)
+        record_cache_operation("miss")
         return None
 
     async def set(
@@ -47,15 +52,23 @@ class CacheService:
     ) -> bool:
         """Set value in cache with TTL."""
         serialized = json.dumps(value, default=str)
-        return await self.redis.setex(key, ttl, serialized)
+        success = await self.redis.setex(key, ttl, serialized)
+        if success:
+            record_cache_operation("set")
+        return success
 
     async def delete(self, key: str) -> bool:
         """Delete key from cache."""
-        return bool(await self.redis.delete(key))
+        deleted = bool(await self.redis.delete(key))
+        if deleted:
+            record_cache_operation("delete")
+        return deleted
 
     async def exists(self, key: str) -> bool:
         """Check if key exists in cache."""
-        return bool(await self.redis.exists(key))
+        exists = bool(await self.redis.exists(key))
+        record_cache_operation("exists")
+        return exists
 
     async def invalidate_pattern(self, pattern: str) -> int:
         """Invalidate all keys matching pattern."""
@@ -63,5 +76,8 @@ class CacheService:
         async for key in self.redis.scan_iter(match=pattern):
             keys.append(key)
         if keys:
-            return await self.redis.delete(*keys)
+            deleted = await self.redis.delete(*keys)
+            if deleted:
+                record_cache_operation("invalidate")
+            return deleted
         return 0
