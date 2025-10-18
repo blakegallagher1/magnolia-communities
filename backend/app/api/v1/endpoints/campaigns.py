@@ -6,12 +6,12 @@ from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from pydantic import BaseModel
+from sqlalchemy import select, func
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.crm import Campaign
+from app.models.crm import Campaign, Lead
 
 router = APIRouter()
 
@@ -36,8 +36,7 @@ class CampaignResponse(BaseModel):
     launched_at: Optional[datetime]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 @router.post("/", response_model=CampaignResponse)
@@ -147,9 +146,9 @@ async def get_campaign_performance(
         else 0
     )
 
-    # TODO: Query leads generated from this campaign
-    # For now, return placeholder
-    leads_generated = 0
+    leads_stmt = select(func.count(Lead.id)).where(Lead.source_campaign_id == campaign_id)
+    leads_result = await db.execute(leads_stmt)
+    leads_generated = leads_result.scalar() or 0
 
     return {
         "campaign_id": campaign_id,
