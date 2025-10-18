@@ -2,9 +2,13 @@
 Health check endpoints.
 """
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Dict
+
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
+from redis.asyncio import Redis
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.redis import get_redis
@@ -12,41 +16,38 @@ from app.core.redis import get_redis
 router = APIRouter()
 
 
-@router.get("/")
-async def health_check():
-    """Basic health check."""
-    return {"status": "healthy"}
+@router.get("/liveness", status_code=status.HTTP_200_OK)
+async def liveness() -> Dict[str, str]:
+    """Simple liveness probe."""
+    return {"status": "alive"}
 
 
-@router.get("/detailed")
-async def detailed_health(db: AsyncSession = Depends(get_db)):
-    """Detailed health check including database and redis."""
-    health_status = {"status": "healthy", "checks": {}}
+@router.get("/readiness")
+async def readiness(
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    """Readiness probe that verifies database and Redis connectivity."""
+    checks: Dict[str, Dict[str, str]] = {}
+    overall_status = status.HTTP_200_OK
 
-    # Check database
     try:
         result = await db.execute(text("SELECT 1"))
         result.scalar()
-        health_status["checks"]["database"] = "healthy"
-    except Exception as e:
-        health_status["checks"]["database"] = f"unhealthy: {str(e)}"
-        health_status["status"] = "degraded"
+        checks["database"] = {"status": "pass"}
+    except Exception as exc:  # pragma: no cover - defensive guard
+        checks["database"] = {"status": "fail", "reason": str(exc)}
+        overall_status = status.HTTP_503_SERVICE_UNAVAILABLE
 
-    # Check Redis
     try:
-        redis = await get_redis()
         await redis.ping()
-        health_status["checks"]["redis"] = "healthy"
-    except Exception as e:
-        health_status["checks"]["redis"] = f"unhealthy: {str(e)}"
-        health_status["status"] = "degraded"
+        checks["redis"] = {"status": "pass"}
+    except Exception as exc:  # pragma: no cover - defensive guard
+        checks["redis"] = {"status": "fail", "reason": str(exc)}
+        overall_status = status.HTTP_503_SERVICE_UNAVAILABLE
 
-    # Check PostGIS
-    try:
-        result = await db.execute(text("SELECT PostGIS_version()"))
-        version = result.scalar()
-        health_status["checks"]["postgis"] = f"healthy ({version})"
-    except Exception as e:
-        health_status["checks"]["postgis"] = f"unhealthy: {str(e)}"
-
-    return health_status
+    body = {
+        "status": "ready" if overall_status == status.HTTP_200_OK else "not_ready",
+        "checks": checks,
+    }
+    return JSONResponse(status_code=overall_status, content=body)

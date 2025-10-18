@@ -15,8 +15,14 @@ from tenacity import (
 
 from app.core.config import settings
 from app.core.redis import CacheService
+from app.core.metrics import record_external_api_retry
 
 logger = logging.getLogger(__name__)
+
+
+def _record_socrata_retry(retry_state):
+    """Tenacity before_sleep callback to track Socrata retries."""
+    record_external_api_retry("socrata")
 
 
 class SocrataConnector:
@@ -74,6 +80,7 @@ class SocrataConnector:
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=4, max=60),
         retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.TimeoutException)),
+        before_sleep=_record_socrata_retry,
         reraise=True,
     )
     async def query(

@@ -15,9 +15,15 @@ from tenacity import (
 )
 
 from app.core.config import settings
+from app.core.metrics import record_external_api_retry
 from app.core.redis import CacheService
 
 logger = logging.getLogger(__name__)
+
+
+def _record_arcgis_retry(retry_state):
+    """Tenacity before_sleep callback to track ArcGIS retries."""
+    record_external_api_retry("arcgis")
 
 
 class ArcGISService(str, Enum):
@@ -97,6 +103,7 @@ class ArcGISConnector:
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=4, max=60),
         retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.TimeoutException)),
+        before_sleep=_record_arcgis_retry,
         reraise=True,
     )
     async def query(

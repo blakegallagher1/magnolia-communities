@@ -11,7 +11,8 @@ from prometheus_client import make_asgi_app
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.v1.router import api_router
-from app.core.logging import setup_logging
+from app.core.logging import RequestContextMiddleware, setup_logging
+from app.core.metrics import MetricsMiddleware
 
 
 @asynccontextmanager
@@ -35,6 +36,8 @@ app = FastAPI(
 )
 
 # Middleware
+app.add_middleware(RequestContextMiddleware)
+app.add_middleware(MetricsMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
