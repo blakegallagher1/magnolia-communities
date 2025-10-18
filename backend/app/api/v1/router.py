@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     campaigns_router,
     data_catalog_router,
     parcel_hunter_router,
+    underwriting_router,
 )
 
 api_router = APIRouter()
@@ -28,4 +29,7 @@ api_router.include_router(
 )
 api_router.include_router(
     parcel_hunter_router, prefix="/parcel-hunter", tags=["agents"]
+)
+api_router.include_router(
+    underwriting_router, prefix="/underwriting", tags=["underwriting"]
 )

@@ -6,7 +6,8 @@ from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture(scope="session")
@@ -24,3 +25,29 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
         await session.rollback()
 
+
+@pytest_asyncio.fixture
+async def api_client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
+    """HTTPX AsyncClient configured against the FastAPI app."""
+    from app.main import app
+    from app.core.database import get_db
+
+    async def _init_db_stub():
+        return None
+
+    monkeypatch.setattr("app.main.init_db", _init_db_stub)
+
+    async def override_db():
+        yield None
+
+    app.dependency_overrides[get_db] = override_db
+
+    await app.router.startup()
+
+    transport = ASGITransport(app=app)
+    try:
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            yield client
+    finally:
+        await app.router.shutdown()
+        app.dependency_overrides.pop(get_db, None)

@@ -103,6 +103,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `POST /api/v1/financial/buy-box/evaluate` - Evaluate against buy-box criteria
 - `POST /api/v1/financial/pro-forma` - Generate multi-year pro forma with IRR
 - `POST /api/v1/financial/quick-screen` - Comprehensive quick screen (all-in-one)
+- `POST /api/v1/underwriting/run` - Execute underwriting autopilot (base + stress + 10-year plan)
 
 ### Due Diligence
 - `POST /api/v1/dd/checklists` - Create DD checklist for deal
@@ -227,4 +228,3 @@ See `/infrastructure/terraform/` for IaC templates (ECS/GKE deployment).
 ## License
 
 Proprietary - Gallagher Property Company
-

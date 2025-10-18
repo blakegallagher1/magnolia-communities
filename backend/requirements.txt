@@ -22,6 +22,7 @@ aiohttp==3.12.14
 # Data Processing
 pandas==2.2.3
 numpy==2.2.1
+numpy-financial==1.0.0
 pyarrow==18.1.0
 geopandas==1.0.1
 shapely==2.0.6
@@ -62,4 +63,3 @@ black==24.10.0
 ruff==0.8.4
 mypy==1.14.0
 pre-commit==4.0.1
-
