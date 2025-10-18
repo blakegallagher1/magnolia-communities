@@ -14,6 +14,7 @@ from app.api.v1.router import api_router
 from app.core.logging import RequestContextMiddleware, setup_logging
 from app.core.metrics import MetricsMiddleware
 from app.core.rate_limiter import limiter, RateLimitMiddleware
+from app.bootstrap import seed_data_catalog
 
 
 @asynccontextmanager
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging()
     await init_db()
+    await seed_data_catalog()
     yield
     # Shutdown
     pass
