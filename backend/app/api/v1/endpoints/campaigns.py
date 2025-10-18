@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.security import require_role, UserRole
 from app.models.crm import Campaign, Lead
 
 router = APIRouter()
@@ -43,6 +44,7 @@ class CampaignResponse(BaseModel):
 async def create_campaign(
     campaign: CampaignCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Create a new campaign."""
     db_campaign = Campaign(
@@ -96,6 +98,7 @@ async def get_campaign(
 async def launch_campaign(
     campaign_id: UUID,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Launch a campaign (change status from draft to active)."""
     stmt = select(Campaign).where(Campaign.id == campaign_id)

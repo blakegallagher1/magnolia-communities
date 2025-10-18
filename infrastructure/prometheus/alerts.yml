@@ -1,0 +1,218 @@
+---
+# Prometheus Alerting Rules for GallagherMHP Command Platform
+
+groups:
+  - name: gallagher_mhp_api_alerts
+    interval: 30s
+    rules:
+      - alert: HighAPIErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m]) /
+          rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          
+      - alert: SlowAPIResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Slow API response times"
+          description: "P95 API latency is {{ $value | humanizeDuration }} (threshold: 2s)"
+      
+      - alert: HighAPIRequestRate
+        expr: rate(http_requests_total[1m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Unusually high API request rate"
+          description: "Request rate is {{ $value }} req/s (possible DDoS or bot traffic)"
+
+  - name: gallagher_mhp_data_alerts
+    interval: 1m
+    rules:
+      - alert: DataSourceStale
+        expr: data_catalog_staleness_hours > 48
+        for: 1h
+        labels:
+          severity: critical
+          component: data_ingestion
+        annotations:
+          summary: "Data source {{ $labels.source_name }} is stale"
+          description: "Data hasn't been updated in {{ $value }} hours (threshold: 48h)"
+      
+      - alert: DataIngestionFailure
+        expr: increase(data_ingestion_errors_total[15m]) > 3
+        for: 5m
+        labels:
+          severity: critical
+          component: data_ingestion
+        annotations:
+          summary: "Multiple data ingestion failures"
+          description: "{{ $value }} ingestion errors in the last 15 minutes for {{ $labels.source_name }}"
+      
+      - alert: DataSourcesDown
+        expr: data_catalog_failed_sources > 1
+        for: 10m
+        labels:
+          severity: critical
+          component: data_catalog
+        annotations:
+          summary: "Multiple data sources failing"
+          description: "{{ $value }} data sources are currently failed"
+
+  - name: gallagher_mhp_cache_alerts
+    interval: 30s
+    rules:
+      - alert: LowCacheHitRate
+        expr: |
+          rate(cache_hits_total[5m]) /
+          (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) < 0.5
+        for: 15m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 50%)"
+      
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance has been down for 2 minutes"
+
+  - name: gallagher_mhp_database_alerts
+    interval: 30s
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL instance has been down for 2 minutes"
+      
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of database connections"
+          description: "{{ $value }} active connections (check for connection leaks)"
+      
+      - alert: DatabaseDiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql/data"} /
+           node_filesystem_size_bytes{mountpoint="/var/lib/postgresql/data"}) < 0.15
+        for: 10m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database disk space running low"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+  - name: gallagher_mhp_external_api_alerts
+    interval: 1m
+    rules:
+      - alert: HighExternalAPIRetryRate
+        expr: rate(external_api_retries_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: external_apis
+        annotations:
+          summary: "High external API retry rate"
+          description: "{{ $value }} retries/s for {{ $labels.api_name }} (indicates API instability)"
+      
+      - alert: SocrataAPIDown
+        expr: |
+          rate(external_api_errors_total{api_name="socrata"}[5m]) /
+          rate(external_api_requests_total{api_name="socrata"}[5m]) > 0.9
+        for: 10m
+        labels:
+          severity: critical
+          component: external_apis
+        annotations:
+          summary: "Socrata API appears to be down"
+          description: "90%+ of Socrata requests are failing"
+      
+      - alert: ArcGISAPIDown
+        expr: |
+          rate(external_api_errors_total{api_name="arcgis"}[5m]) /
+          rate(external_api_requests_total{api_name="arcgis"}[5m]) > 0.9
+        for: 10m
+        labels:
+          severity: critical
+          component: external_apis
+        annotations:
+          summary: "ArcGIS API appears to be down"
+          description: "90%+ of ArcGIS requests are failing"
+
+  - name: gallagher_mhp_business_alerts
+    interval: 5m
+    rules:
+      - alert: ParcelHunterNoLeads
+        expr: parcel_hunter_leads_created_total == 0
+        for: 7d
+        labels:
+          severity: warning
+          component: agents
+        annotations:
+          summary: "Parcel Hunter hasn't created leads in 7 days"
+          description: "No new leads from Parcel Hunter agent in the past week (check criteria)"
+      
+      - alert: High311ComplaintSurge
+        expr: increase(sr_311_records_total[1h]) > 100
+        for: 30m
+        labels:
+          severity: warning
+          component: data_quality
+        annotations:
+          summary: "Unusual surge in 311 complaints"
+          description: "{{ $value }} new 311 records in the last hour (possible data issue or real surge)"
+
+  - name: gallagher_mhp_health_alerts
+    interval: 30s
+    rules:
+      - alert: ServiceUnhealthy
+        expr: up{job="gallagher-mhp-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: health
+        annotations:
+          summary: "GallagherMHP backend service is down"
+          description: "Backend service has been unreachable for 2 minutes"
+      
+      - alert: ServiceNotReady
+        expr: probe_success{job="readiness-probe"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: health
+        annotations:
+          summary: "Service readiness check failing"
+          description: "Backend service is not ready (check database/Redis connectivity)"
+
