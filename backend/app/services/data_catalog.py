@@ -4,7 +4,7 @@ Data catalog service for tracking data freshness and ingestion.
 
 import logging
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -94,9 +94,14 @@ class DataCatalogService:
 
             # Compare timestamps
             if remote_updated_at:
-                remote_dt = datetime.fromisoformat(
-                    str(remote_updated_at).replace("Z", "+00:00")
-                )
+                remote_dt = self._parse_remote_timestamp(remote_updated_at)
+                if remote_dt is None:
+                    logger.warning(
+                        "Unable to parse remote timestamp for %s: %s",
+                        source_name,
+                        remote_updated_at,
+                    )
+                    return {"needs_refresh": False, "error": "unparseable_timestamp"}
 
                 needs_refresh = (
                     not catalog.last_seen_updated_at
@@ -126,6 +131,47 @@ class DataCatalogService:
             return {"needs_refresh": False, "error": str(e)}
 
         return {"needs_refresh": False}
+
+    @staticmethod
+    def _parse_remote_timestamp(raw_value: Any) -> Optional[datetime]:
+        """
+        Normalise remote timestamps into timezone-aware datetimes.
+
+        Handles ISO strings, integer/float epochs (seconds), and millisecond epochs.
+        """
+        if raw_value is None:
+            return None
+
+        # Numeric timestamps: Socrata returns seconds, ArcGIS returns milliseconds.
+        if isinstance(raw_value, (int, float)):
+            value = float(raw_value)
+            if value > 1e12:  # likely milliseconds
+                value /= 1000.0
+            try:
+                return datetime.fromtimestamp(value, tz=timezone.utc)
+            except (OverflowError, OSError, ValueError):
+                return None
+
+        if isinstance(raw_value, str):
+            stripped = raw_value.strip()
+            if not stripped:
+                return None
+
+            # If the string is purely numeric, treat it as epoch seconds/milliseconds.
+            if stripped.isdigit():
+                return DataCatalogService._parse_remote_timestamp(int(stripped))
+
+            # Handle ISO-like strings (allow trailing Z).
+            iso_candidate = stripped.replace("Z", "+00:00")
+            try:
+                parsed = datetime.fromisoformat(iso_candidate)
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                return parsed.astimezone(timezone.utc)
+            except ValueError:
+                return None
+
+        return None
 
     async def record_ingest_start(self, source_name: str, job_id: str) -> None:
         """Record the start of an ingestion job."""

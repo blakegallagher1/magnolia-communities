@@ -11,6 +11,7 @@ from app.connectors.socrata import SocrataConnector
 from app.connectors.arcgis import ArcGISConnector
 from app.services.data_catalog import DataCatalogService
 from app.jobs.data_ingestion import DataIngestionJob
+from app.utils.notifications import NotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -96,11 +97,16 @@ class FreshnessJob:
 
     async def _send_alert(self, health_summary: dict):
         """Send alert for degraded/failed sources."""
-        # TODO: Implement Slack/Email alerting
-        logger.warning(
-            f"Data health alert: {health_summary['degraded']} degraded, "
-            f"{health_summary['failed']} failed sources"
-        )
+        try:
+            await NotificationService.notify_data_health_degraded(health_summary)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("Failed to send data health notification: %s", exc)
+        finally:
+            logger.warning(
+                "Data health alert: %s degraded, %s failed sources",
+                health_summary.get("degraded", 0),
+                health_summary.get("failed", 0),
+            )
 
 
 async def run_freshness_job():

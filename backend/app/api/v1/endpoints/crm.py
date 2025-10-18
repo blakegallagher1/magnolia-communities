@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from app.core.database import get_db
@@ -34,8 +34,7 @@ class OwnerResponse(BaseModel):
     phone: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ParkCreate(BaseModel):
@@ -59,8 +58,7 @@ class ParkResponse(BaseModel):
     lot_rent: Optional[float]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LeadCreate(BaseModel):
@@ -79,8 +77,7 @@ class LeadResponse(BaseModel):
     asking_price: Optional[float]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DealCreate(BaseModel):
@@ -100,8 +97,7 @@ class DealResponse(BaseModel):
     dscr: Optional[float]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Owner endpoints

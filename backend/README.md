@@ -181,6 +181,21 @@ pytest tests/test_financial_screening.py -v
 
 ## Database Migrations
 
+### Using Make Targets
+
+```bash
+# Generate a revision after updating SQLAlchemy models
+make db-revision m="add new crm endpoint"
+
+# Apply the latest migrations locally or in CI/CD
+make db-upgrade
+
+# Roll back as needed (default is the previous revision)
+make db-downgrade rev="-1"
+```
+
+### Direct Alembic Commands
+
 ```bash
 # Create new migration
 alembic revision --autogenerate -m "Add new table"
@@ -191,6 +206,10 @@ alembic upgrade head
 # Rollback one migration
 alembic downgrade -1
 ```
+
+### Migration Drift Check
+
+CI runs an automatic **migration drift** check. If autogenerate produces changes the build fails with the diff so a new revision can be committed.
 
 ## External Data Sources
 
