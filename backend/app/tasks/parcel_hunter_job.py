@@ -1,6 +1,5 @@
 """Background job for running Parcel Hunter on schedule."""
 import logging
-from datetime import datetime
 
 from app.core.database import AsyncSessionLocal
 from app.core.redis import get_redis, CacheService
