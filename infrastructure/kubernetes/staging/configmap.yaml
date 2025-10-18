@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gallagher-mhp-config
+  namespace: gallagher-mhp-staging
+data:
+  ENVIRONMENT: "staging"
+  API_V1_PREFIX: "/api/v1"
+  LOG_LEVEL: "INFO"
+  
+  # CORS
+  CORS_ORIGINS: "https://staging.gallagher-mhp.com,https://api-staging.gallagher-mhp.com"
+  
+  # External APIs
+  SOCRATA_BASE_URL: "https://data.brla.gov/resource"
+  SOCRATA_PROPERTY_DATASET: "re5c-hrw9"
+  SOCRATA_RATE_LIMIT: "1000"
+  
+  ARCGIS_BASE_URL: "https://maps.brla.gov/gis/rest/services"
+  ARCGIS_311_BASE_URL: "https://services.arcgis.com/KYvXadMcgf0K1EzK/arcgis/rest/services"
+  ARCGIS_MAX_RECORD_COUNT: "1000"
+  
+  # Data Catalog
+  DATA_CATALOG_REFRESH_INTERVAL: "86400"
+  DATA_QUALITY_CHECK_INTERVAL: "3600"
+  
+  # Redis
+  REDIS_CACHE_TTL: "3600"
+  
+  # AWS
+  AWS_REGION: "us-east-1"
+  S3_BUCKET_NAME: "gallagher-mhp-docs-staging"
+

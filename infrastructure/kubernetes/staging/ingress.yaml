@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gallagher-mhp-ingress
+  namespace: gallagher-mhp-staging
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+  labels:
+    app: gallagher-mhp
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api-staging.gallagher-mhp.com
+      secretName: gallagher-mhp-tls-staging
+  rules:
+    - host: api-staging.gallagher-mhp.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gallagher-mhp-backend
+                port:
+                  number: 8000
+
