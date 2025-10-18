@@ -7,6 +7,7 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from limits.storage import MemoryStorage
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -32,6 +33,9 @@ async def api_client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
     from app.main import app
     from app.core.database import get_db
     from app.core.redis import get_redis
+    from app.core.rate_limiter import limiter
+    import app.core.rate_limiter as rate_limit_module
+    from slowapi import extension as slowapi_extension
 
     class StubResult:
         def scalar(self):
@@ -65,6 +69,14 @@ async def api_client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
         return None
 
     monkeypatch.setattr("app.main.init_db", _init_db_stub)
+    previous_storage = limiter._storage
+    limiter._storage = MemoryStorage()
+    limiter.reset()
+    monkeypatch.setattr(
+        slowapi_extension,
+        "_rate_limit_exceeded_handler",
+        rate_limit_module._rate_limit_handler,
+    )
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_redis] = override_redis
@@ -85,3 +97,4 @@ async def api_client(monkeypatch) -> AsyncGenerator[AsyncClient, None]:
             delattr(app.state, "test_db_override")
         if hasattr(app.state, "test_redis_override"):
             delattr(app.state, "test_redis_override")
+        limiter._storage = previous_storage

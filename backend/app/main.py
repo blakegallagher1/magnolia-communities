@@ -13,6 +13,7 @@ from app.core.database import init_db
 from app.api.v1.router import api_router
 from app.core.logging import RequestContextMiddleware, setup_logging
 from app.core.metrics import MetricsMiddleware
+from app.core.rate_limiter import limiter, RateLimitMiddleware
 
 
 @asynccontextmanager
@@ -38,9 +39,17 @@ app = FastAPI(
 # Middleware
 app.add_middleware(RequestContextMiddleware)
 app.add_middleware(MetricsMiddleware)
+app.state.limiter = limiter
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=list(
+        {
+            *settings.CORS_ORIGINS,
+            "https://app.gallaghermhp.com",
+            "https://api.gallaghermhp.com",
+        }
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

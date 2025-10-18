@@ -56,6 +56,12 @@ Updated multiple packages to latest stable versions for general security and sta
 - **Tools**: pytest, mypy, ruff
 - **Utilities**: redis, celery, prometheus-client
 
+### API Hardening
+
+- **CORS**: Only approved origins may invoke the API (`localhost` dev hosts plus `https://app.gallaghermhp.com` and `https://api.gallaghermhp.com`).
+- **Rate Limiting**: SlowAPI-backed throttles restrict clients to 100 requests/min per IP by default; high-impact endpoints (e.g., underwriting runs) are capped at 20 requests/min.
+- **Signed URLs**: Utility helpers generate presigned S3 GET/PUT URLs with configurable TTLs. Secrets are never logged and responses are gated behind an authenticated placeholder endpoint pending full auth integration.
+
 ### Verification
 
 ```bash
@@ -93,4 +99,3 @@ If you discover a security vulnerability, please email: security@gallagherproper
 
 **Last Updated**: October 17, 2025  
 **Next Review**: November 17, 2025
-
