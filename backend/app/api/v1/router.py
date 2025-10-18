@@ -4,6 +4,7 @@ API v1 router - aggregates all endpoint routers.
 
 from fastapi import APIRouter
 
+from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.campaigns import router as campaigns_router
 from app.api.v1.endpoints.crm import router as crm_router
 from app.api.v1.endpoints.data_catalog import router as data_catalog_router
@@ -21,6 +22,7 @@ except ImportError:  # pragma: no cover - backward compatibility
 
 api_router = APIRouter()
 
+api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
 api_router.include_router(health_router, prefix="/health", tags=["health"])
 api_router.include_router(parcels_router, prefix="/parcels", tags=["parcels"])
 api_router.include_router(crm_router, prefix="/crm", tags=["crm"])
