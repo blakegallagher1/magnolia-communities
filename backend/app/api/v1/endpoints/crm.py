@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.security import require_role, UserRole
 from app.models.crm import Owner, Park, Lead, Deal, PipelineStage, LeadSource
 
 router = APIRouter()
@@ -105,6 +106,7 @@ class DealResponse(BaseModel):
 async def create_owner(
     owner: OwnerCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Create a new owner."""
     db_owner = Owner(**owner.model_dump())
@@ -135,6 +137,7 @@ async def list_owners(
 async def create_park(
     park: ParkCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Create a new park."""
     db_park = Park(**park.model_dump())
@@ -181,6 +184,7 @@ async def get_park(
 async def create_lead(
     lead: LeadCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Create a new lead."""
     db_lead = Lead(**lead.model_dump())
@@ -214,6 +218,7 @@ async def list_leads(
 async def create_deal(
     deal: DealCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Create a new deal."""
     db_deal = Deal(**deal.model_dump())

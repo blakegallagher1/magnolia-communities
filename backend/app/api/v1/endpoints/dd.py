@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.security import require_role, UserRole
 from app.models.dd import DDChecklist, DDItem, DDItemStatus, DDCategory, RiskLevel
 
 router = APIRouter()
@@ -67,6 +68,7 @@ class DDItemResponse(BaseModel):
 async def create_checklist(
     checklist: DDChecklistCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Create a new DD checklist for a deal."""
     db_checklist = DDChecklist(**checklist.model_dump())
@@ -123,6 +125,7 @@ async def get_checklist_items(
 async def create_item(
     item: DDItemCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Create a new DD checklist item."""
     db_item = DDItem(**item.model_dump())
@@ -141,6 +144,7 @@ async def update_item(
     item_id: UUID,
     update: DDItemUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     """Update DD checklist item."""
     stmt = select(DDItem).where(DDItem.id == item_id)
